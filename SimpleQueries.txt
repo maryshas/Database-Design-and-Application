@@ -1,0 +1,107 @@
+--Database Project 3 (Anitya, Ethan, Justin, Mary)
+--Completed on SSMS
+
+--Simple Queries
+--a Create a list of patients and the medications they currently take. Sort your list by patient’s
+--last name and medication name in alphabetical order. Include other applicable details such
+--as date prescribed and dosage.
+SELECT Person.Name AS PatientName, 
+       Patient.Medications, 
+       Patient.AllergyInfo, 
+       Patient.ImagingDate, 
+       Patient.HIPPASigned
+FROM Patient
+LEFT JOIN Person ON Patient.PatientSSN = Person.SSN
+ORDER BY SUBSTRING(Person.Name, CHARINDEX(' ', Person.Name) +1, LEN(Person.Name) - CHARINDEX(' ', Person.Name)) ASC, Patient.Medications;
+
+--b Display patient information for patients who currently have Delta Dental insurance policy
+SELECT *
+FROM Patient
+INNER JOIN InsurancePlan ON Patient.InsurancePlanID = InsurancePlan.policyID
+WHERE InsurancePlan.CompanyName = 'Delta Dental';
+
+--c Generate a list of procedures and dates of service performed by doctor Smilow
+SELECT Appointments.ApptDate, DentalProcedure.procName, Billings.AssignedDoctor
+FROM Appointments
+INNER JOIN DentalProcedure ON Appointments.ProcedureID = DentalProcedure.procID
+INNER JOIN Billings ON Appointments.ApptID = Billings.AppointmentID
+WHERE Billings.AssignedDoctor = 'Dr. Smilow';
+
+
+--d Print out a list of past due invoices with patient contact information. Past due is defined as
+--over 30 days old with a balance over $10
+SELECT Person.Name, Billings.BIllingDate, Billings.Amount, Person.PhoneNumber, Person.Email
+FROM Billings
+INNER JOIN Appointments ON Billings.AppointmentID = Appointments.ApptID
+INNER JOIN Person ON Appointments.AppointmentSSN = Person.SSN
+WHERE Billings.BIllingDate < DATEADD(day, -30, GETDATE()) AND Billings.Amount > 10;
+
+--e Find the patients who brought the most revenue in the past year. You can define how many
+--records you want to display in the result of this query
+SELECT TOP 5 Person.Name, SUM(Billings.Amount) AS TotalRevenue
+FROM Billings
+INNER JOIN Appointments ON Billings.AppointmentID = Appointments.ApptID
+INNER JOIN Person ON Appointments.AppointmentSSN = Person.SSN
+WHERE Billings.BIllingDate >= DATEADD(year, -1, GETDATE())
+GROUP BY Person.Name
+ORDER BY TotalRevenue DESC;
+
+--f Create a list of doctors who performed less than 5 procedures this year
+SELECT
+    b.AssignedDoctor, 
+    COUNT(b.AssignedDoctor) AS TotalProcedures
+FROM
+    Appointments a
+JOIN
+    Billings b ON a.ApptID = b.AppointmentID
+WHERE
+    YEAR(CONVERT(DATETIME, a.ApptDate)) = 2024
+GROUP BY
+    b.AssignedDoctor
+HAVING
+    COUNT(b.AssignedDoctor) < 5;
+
+--g Find the highest paying procedures, procedure price, and the total number of those
+--procedures performed. Sort your list with highest paying procedures showing at the top of
+--your list.
+SELECT
+    dp.procName AS ProcedureName,
+    dp.procedurePrice AS ProcedurePrice,
+    COUNT(b.ProcedureID) AS ProcedureCount
+FROM
+    DentalProcedure dp
+JOIN
+    Billings b ON dp.procID = b.ProcedureID
+GROUP BY
+    dp.procName,
+    dp.procedurePrice
+ORDER BY
+    dp.procedurePrice DESC;
+
+--h Create a list of all payment types accepted, number of times each of them was used, and total
+--amount charged to that type of payment.
+SELECT
+    p.PaymentType AS PaymentType,
+    COUNT(*) AS UsageCount,
+    SUM(b.Amount) AS TotalAmountCharged
+FROM
+    Payments p
+JOIN
+    Billings b ON p.InvoiceId = b.BillingID
+GROUP BY
+    p.PaymentType;
+
+
+
+--i Find the name of the most popular insurance plan currently used by the patients.
+SELECT TOP 1
+    ip.CompanyName AS MostPopularInsurancePlan,
+    COUNT(ip.CompanyName) AS UsageCount
+FROM
+    InsurancePlan ip
+JOIN
+    Patient p ON ip.policyID = p.InsurancePlanID
+GROUP BY
+    ip.CompanyName
+ORDER BY
+	UsageCount DESC;

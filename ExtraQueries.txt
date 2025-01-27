@@ -1,0 +1,42 @@
+--Database Project 3 (Anitya, Ethan, Justin, Mary)
+--Completed on SSMS
+
+--a. (outer join) Find the name, insurance company name, policy ID, and Emergency contact information for all patients.
+
+SELECT 
+    Person.Name ,
+    InsurancePlan.CompanyName,
+    InsurancePlan.policyID ,
+    Patient.EmergencyContactInfo
+FROM Patient 
+INNER JOIN Person ON Patient.PatientSSN = Person.SSN
+LEFT OUTER JOIN InsurancePlan ON InsurancePlan.PolicyID = Patient.InsurancePlanID;
+
+
+
+
+--b. (aggregate function) Count the average bill amount for all patients. 
+
+
+SELECT 
+p.Name AS PatientName, 
+AVG(b.Amount) AS AverageBillAmount
+FROM Billings b
+JOIN Appointments a ON b.AppointmentID = a.ApptID
+JOIN Person p ON a.AppointmentSSN = p.SSN
+GROUP BY p.Name;
+
+
+
+
+--c. (extra entity from PART 1) Find out how much gas, water, and electric cost in the last 365 days. 
+
+
+SELECT SUM(Utility.Gas) AS TotalGasCost, SUM(Utility.Water) AS TotalWaterCost, SUM(Utility.Electric) AS TotalElectricCost
+FROM Utility
+JOIN CompanyBills ON Utility.UtilityBillID = CompanyBills.BillID 
+WHERE CompanyBills.BillDate>= DATEADD(year, -1, GETDATE())
+
+
+
+
